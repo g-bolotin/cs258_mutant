@@ -32,7 +32,8 @@ FlowState get_state(int flow_id) {
     strncpy(state.current_protocol, "unknown", sizeof(state.current_protocol));
 
     // Run the 'ss' command to get TCP info for all active connections
-    FILE *fp = popen("ss -ti", "r");
+    // Only look at connections talking to an iperf3 server
+    FILE *fp = popen("ss -ti dst :5201", "r");
     if (fp == NULL) {
         printf("Failed to run ss command\n");
         return state;
