@@ -9,6 +9,7 @@ typedef struct {
     double smoothed_rtt;
     double min_rtt;
     double delivery_rate;
+    double cwnd;
     int loss_events;
     double queueing_estimate;
     char current_protocol[32];
