@@ -35,14 +35,15 @@ class LinUCBAgent:
             # Estimate weights theta
             theta = A_inv @ self.b[p]
 
-            # Expected reward estimate: theta^T * z_t
-            expected_reward = theta.T @ z_t
+            # Extract the scalar values out of the 1x1 matrices
+            expected_reward = (theta.T @ z_t)[0][0]
+            variance = (z_t.T @ A_inv @ z_t)[0][0]
 
-            # Confidence interval (uncertainty)
-            confidence_interval = self.alpha * np.sqrt(z_t.T @ A_inv @ z_t)
+            # Prevent floating-point precision errors from creating negative square roots
+            confidence_interval = self.alpha * np.sqrt(max(0.0, variance))
 
             # UCB score
-            p_values[p] = (expected_reward + confidence_interval)[0][0]
+            p_values[p] = expected_reward + confidence_interval
 
         # Select the protocol with the highest UCB score
         best_protocol = max(p_values, key=p_values.get)

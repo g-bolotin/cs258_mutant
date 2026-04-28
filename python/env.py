@@ -34,20 +34,19 @@ class MutantEnv:
 
     def set_protocol(self, protocol_name):
         """
-        Commands the Linux kernel to swap the tcp_congestion_ops struct.
-        This uses the standard sysctl command (requires sudo).
+        Commands the custom C binary to hot-swap the tcp_congestion_ops struct
+        for the active flow, bypassing sysctl and Mahimahi namespace restrictions.
         """
         try:
-            # Tell the kernel to switch algorithms immediately
-            subprocess.run(
-                ['sysctl', '-w', f'net.ipv4.tcp_congestion_control={protocol_name}'],
+            result = subprocess.run(
+                [self.cli_path, "--flow", str(self.flow_id), "--set", protocol_name],
                 check=True,
-                stdout=subprocess.DEVNULL, # Hide the sysctl success message
-                stderr=subprocess.DEVNULL
+                capture_output=True,
+                text=True
             )
-        except subprocess.CalledProcessError:
-            print(f"ERROR: Kernel rejected protocol '{protocol_name}'. "
-                  f"Did you run 'sudo modprobe tcp_{protocol_name}'?")
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: C binary rejected protocol '{protocol_name}'.")
+            print(f"Command Output: {e.stderr or e.stdout}")
 
     def reset(self, initial_protocol="cubic"):
         """Resets the environment back to a safe default baseline."""
