@@ -1,43 +1,60 @@
-import random
 import numpy as np
 
-class MutantLearner:
-    def __init__(self, protocols, epsilon=0.2):
+class LinUCBAgent:
+    def __init__(self, protocols, latent_dim=16, alpha=0.5, gamma=0.95):
+        """
+        alpha: Controls the exploration-exploitation trade-off.
+               Higher alpha = more exploration.
+        """
         self.protocols = protocols
-        self.epsilon = epsilon
+        self.n_arms = len(protocols)
+        self.d = latent_dim
+        self.alpha = alpha
+        self.gamma = gamma # Forgetting factor
 
-        # Simple Q-table to track the expected reward for each protocol
-        # Format: { 'cubic': 0.0, 'bbr': 0.0, 'vegas': 0.0 }
-        self.q_values = {p: 0.0 for p in protocols}
+        # Initialize A matrix (d x d identity matrix) and b vector (d x 1 zero vector) for each protocol
+        self.A = {p: np.identity(self.d) for p in protocols}
+        self.b = {p: np.zeros((self.d, 1)) for p in protocols}
         self.action_counts = {p: 0 for p in protocols}
 
-    def preprocess_state(self, metrics):
+    def select_action(self, z_t):
         """
-        Converts the raw JSON metrics into a state vector for the RL model.
-        (For a simple bandit, we don't need this yet, but you'll need it for full RL).
+        z_t: The 16-dimensional latent vector from the PyTorch encoder (numpy array).
         """
-        # Example normalized state: [RTT, Throughput, CWND]
-        return np.array([
-            metrics['rtt_ms'] / 100.0,         # Normalize against 100ms
-            metrics['throughput_mbps'] / 50.0, # Normalize against 50Mbps
-            metrics['cwnd'] / 1000.0           # Normalize against 1000 packets
-        ])
+        for p in self.protocols:
+            if self.action_counts[p] == 0:
+                return p
 
-    def select_action(self, state_vector):
-        """Epsilon-Greedy action selection."""
-        # Explore: pick a random protocol
-        if random.random() < self.epsilon:
-            return random.choice(self.protocols)
+        z_t = z_t.reshape((self.d, 1))
+        p_values = {}
 
-        # Exploit: pick the protocol with the highest historical reward
-        best_protocol = max(self.q_values, key=self.q_values.get)
+        for p in self.protocols:
+            # Calculate A inverse
+            A_inv = np.linalg.inv(self.A[p])
+
+            # Estimate weights theta
+            theta = A_inv @ self.b[p]
+
+            # Expected reward estimate: theta^T * z_t
+            expected_reward = theta.T @ z_t
+
+            # Confidence interval (uncertainty)
+            confidence_interval = self.alpha * np.sqrt(z_t.T @ A_inv @ z_t)
+
+            # UCB score
+            p_values[p] = (expected_reward + confidence_interval)[0][0]
+
+        # Select the protocol with the highest UCB score
+        best_protocol = max(p_values, key=p_values.get)
         return best_protocol
 
-    def update(self, action, reward):
-        """Updates the Q-value for the chosen action using a running average."""
+    def update(self, action, z_t, reward):
+        """
+        Updates the A matrix and b vector for the chosen protocol.
+        """
         self.action_counts[action] += 1
-        n = self.action_counts[action]
+        z_t = z_t.reshape((self.d, 1))
 
-        # Incremental average update formula
-        current_q = self.q_values[action]
-        self.q_values[action] = current_q + (1.0 / n) * (reward - current_q)
+        # Online update equations for Bayesian linear regression
+        self.A[action] = (self.A[action] * self.gamma) + (z_t @ z_t.T)
+        self.b[action] = (self.b[action] * self.gamma) + (reward * z_t)

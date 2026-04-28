@@ -1,4 +1,17 @@
 ##### How to run
+You may need to run the following to ensure all protocols are recognized by the kernel:
+
+sudo modprobe tcp_hybla
+sudo modprobe tcp_westwood
+sudo modprobe tcp_veno
+sudo modprobe tcp_vegas
+sudo modprobe tcp_yeah
+sudo modprobe tcp_bic
+sudo modprobe tcp_htcp
+sudo modprobe tcp_highspeed
+sudo modprobe tcp_illinois
+sudo modprobe tcp_bbr
+
 Compile protocol_manager:
 - gcc csrc/protocol_manager.c csrc/cli.c -o protocol_manager
 

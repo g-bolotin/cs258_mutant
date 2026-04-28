@@ -42,44 +42,49 @@ FlowState get_state(int flow_id) {
 
     // Read every line from the ss output
     while (fgets(line, sizeof(line), fp) != NULL) {
-        if (strstr(line, "cubic") || strstr(line, "bbr") || strstr(line, "vegas")) {
+        FlowState temp_state = best_state;
 
-            FlowState temp_state = best_state; // Start with defaults
-
-            // Extract protocol
-            if (strstr(line, "bbr")) strncpy(temp_state.current_protocol, "bbr", sizeof(temp_state.current_protocol));
-            else if (strstr(line, "vegas")) strncpy(temp_state.current_protocol, "vegas", sizeof(temp_state.current_protocol));
-            else strncpy(temp_state.current_protocol, "cubic", sizeof(temp_state.current_protocol));
-
-            // Extract RTT
-            char *rtt_ptr = strstr(line, "rtt:");
-            if (rtt_ptr) {
-                sscanf(rtt_ptr, "rtt:%lf", &temp_state.smoothed_rtt);
+        // 1. Identify the protocol first
+        const char* known_protocols[] = {"cubic", "hybla", "bbr", "westwood", "veno", "vegas", "yeah", "bic", "htcp", "highspeed", "illinois"};
+        int num_protocols = 11;
+        for (int i = 0; i < num_protocols; i++) {
+            if (strstr(line, known_protocols[i])) {
+                strncpy(temp_state.current_protocol, known_protocols[i], sizeof(temp_state.current_protocol));
+                break;
             }
+        }
 
-            // Extract Congestion Window (cwnd)
-            char *cwnd_ptr = strstr(line, "cwnd:");
-            if (cwnd_ptr) {
-                sscanf(cwnd_ptr, "cwnd:%lf", &temp_state.cwnd);
-            }
+        // 2. Automatically parse all key:value pairs dynamically
+        char *token = strtok(line, " \t\n");
+        while (token != NULL) {
+            char *colon = strchr(token, ':');
 
-            // Extract delivery rate (using a space instead of a colon)
-            char *rate_ptr = strstr(line, "delivery_rate ");
-            if (rate_ptr) {
-                sscanf(rate_ptr, "delivery_rate %lf", &temp_state.delivery_rate);
-            } else {
-                // Fallback: Use 'send' rate if delivery_rate is missing on loopback
-                rate_ptr = strstr(line, "send ");
-                if (rate_ptr) {
-                    sscanf(rate_ptr, "send %lf", &temp_state.delivery_rate);
+            if (colon) {
+                *colon = '\0';
+                char *key = token;
+                char *value = colon + 1;
+
+                if (strcmp(key, "rtt") == 0) {
+                    sscanf(value, "%lf", &temp_state.smoothed_rtt);
                 }
+                else if (strcmp(key, "cwnd") == 0) {
+                    sscanf(value, "%lf", &temp_state.cwnd);
+                }
+                // Add new metrics here if needed
+            }
+            // Handle edge cases where 'ss' uses a space instead of a colon (like delivery_rate)
+            else if (strcmp(token, "delivery_rate") == 0 || strcmp(token, "send") == 0) {
+                token = strtok(NULL, " \t\n");
+                if (token) sscanf(token, "%lf", &temp_state.delivery_rate);
             }
 
-            // If this connection has a higher throughput than our previous best, it's the data channel!
-            if (temp_state.delivery_rate > max_rate) {
-                max_rate = temp_state.delivery_rate;
-                best_state = temp_state;
-            }
+            token = strtok(NULL, " \t\n");
+        }
+
+        // 3. Evaluate if this connection is the Data Channel
+        if (temp_state.delivery_rate > max_rate) {
+            max_rate = temp_state.delivery_rate;
+            best_state = temp_state;
         }
     }
     pclose(fp);
@@ -89,8 +94,9 @@ FlowState get_state(int flow_id) {
 void get_metrics(int flow_id) {
     FlowState state = get_state(flow_id);
     // Print in JSON format including the new cwnd metric
-    printf("{\"flow_id\": %d, \"protocol\": \"%s\", \"rtt_ms\": %.2f, \"throughput_mbps\": %.2f, \"cwnd\": %.0f, \"loss\": %d}\n",
-           state.flow_id, state.current_protocol, state.smoothed_rtt, state.delivery_rate, state.cwnd, state.loss_events);
+    // Change "delivery_rate" to "throughput_mbps" in the JSON string
+    printf("{\"protocol\": \"%s\", \"rtt_ms\": %.2f, \"cwnd\": %.0f, \"throughput_mbps\": %.2f}\n",
+           state.current_protocol, state.smoothed_rtt, state.cwnd, state.delivery_rate);
 }
 
 void reset(int flow_id) {

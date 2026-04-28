@@ -1,36 +1,54 @@
 import subprocess
 import json
-import time
 
 class MutantEnv:
-    def __init__(self, cli_path="../protocol_manager", flow_id=1):
+    def __init__(self, cli_path="./protocol_manager", flow_id=1):
         self.cli_path = cli_path
         self.flow_id = flow_id
 
-    def set_protocol(self, protocol_name):
-        """Commands the C binary to switch the protocol."""
-        subprocess.run(
-            [self.cli_path, "--flow", str(self.flow_id), "--set", protocol_name],
-            stdout=subprocess.DEVNULL, # Hide the C print statements
-            stderr=subprocess.DEVNULL
-        )
-
     def get_metrics(self):
-        """Calls the C binary to read metrics and parses the JSON output."""
-        result = subprocess.run(
-            [self.cli_path, "--flow", str(self.flow_id), "--read-metrics"],
-            capture_output=True,
-            text=True
-        )
+        """
+        Executes the compiled C binary, captures its JSON output,
+        and converts it into a Python dictionary.
+        """
         try:
-            # Parse the JSON string printed by the C program
-            return json.loads(result.stdout.strip())
+            # UPDATED: Pass the exact flags the C binary expects
+            result = subprocess.run(
+                [self.cli_path, "--flow", str(self.flow_id), "--read-metrics"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+
+            if result.stdout:
+                # The C code should be printing a valid JSON string
+                metrics = json.loads(result.stdout.strip())
+                return metrics
+
         except json.JSONDecodeError:
-            print(f"Error parsing metrics from C binary: {result.stdout}")
-            return None
+            print(f"JSON Parsing Error. Raw C output: {result.stdout}")
+        except Exception as e:
+            print(f"Error reading from C module: {e}")
+
+        return None
+
+    def set_protocol(self, protocol_name):
+        """
+        Commands the Linux kernel to swap the tcp_congestion_ops struct.
+        This uses the standard sysctl command (requires sudo).
+        """
+        try:
+            # Tell the kernel to switch algorithms immediately
+            subprocess.run(
+                ['sysctl', '-w', f'net.ipv4.tcp_congestion_control={protocol_name}'],
+                check=True,
+                stdout=subprocess.DEVNULL, # Hide the sysctl success message
+                stderr=subprocess.DEVNULL
+            )
+        except subprocess.CalledProcessError:
+            print(f"ERROR: Kernel rejected protocol '{protocol_name}'. "
+                  f"Did you run 'sudo modprobe tcp_{protocol_name}'?")
 
     def reset(self, initial_protocol="cubic"):
-        """Resets the environment for a new run."""
+        """Resets the environment back to a safe default baseline."""
         self.set_protocol(initial_protocol)
-        time.sleep(0.1) # Give the kernel a fraction of a second to settle
-        return self.get_metrics()
