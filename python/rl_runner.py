@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from env import MutantEnv
 from reward import compute_reward
-from encoder import MutantEncoder
+from autoencoder import MutantAutoencoder
 from learner import LinUCBAgent
 from collections import deque
 
@@ -86,16 +86,12 @@ def run_rl_experiment(env, encoder, agent, duration_steps=60, step_interval=0.01
             # Combine them (15 + 36 = 51 features)
             raw_features = base_features + temporal_features
 
-            # Pad the last 4 dimensions to perfectly match the 55-dimension PyTorch Encoder
-            # (The paper likely tracked one more metric, but padding 4 zeros won't hurt the GRU)
-            raw_features += [0.0] * (55 - len(raw_features))
-
             # Format as a PyTorch tensor: (batch=1, seq_len=1, features=55)
             state_tensor = torch.FloatTensor(raw_features).unsqueeze(0).unsqueeze(0)
 
             # 2. Encode state
             with torch.no_grad():
-                latent_tensor = encoder(state_tensor)
+                latent_tensor = model.encode(state_tensor)
                 # Convert the 16-dim tensor back to a standard numpy array for LinUCB
                 z_t = latent_tensor.numpy().flatten()
 
@@ -121,12 +117,29 @@ def run_rl_experiment(env, encoder, agent, duration_steps=60, step_interval=0.01
 
             # --- Logging ---
             if writer is None:
-                fieldnames = ["step", "action_taken", "reward"] + list(new_metrics.keys())
-                writer = csv.DictWriter(file, fieldnames=fieldnames)
+                # Generate the 51 headers dynamically
+                feature_headers = list(base_keys)
+                for w in ['short', 'med', 'long']:
+                    for stat in ['min', 'max', 'mean']:
+                        for tk in temporal_keys:
+                            feature_headers.append(f"{tk}_{stat}_{w}")
+
+                # Combine metadata headers with feature headers
+                csv_headers = ["step", "action_taken", "reward"] + feature_headers
+                writer = csv.DictWriter(file, fieldnames=csv_headers)
                 writer.writeheader()
 
-            row_data = {"step": step, "action_taken": action, "reward": round(reward, 2)}
-            row_data.update(new_metrics)
+            # Zip the headers and the 51-dimension raw_features array together
+            feature_dict = dict(zip(feature_headers, raw_features[:51]))
+
+            row_data = {
+                "step": step,
+                "action_taken": action,
+                "reward": round(reward, 2)
+            }
+            # Merge the features into the row
+            row_data.update(feature_dict)
+
             writer.writerow(row_data)
 
             print(f"Step {step:02d} | Action: {action.upper():<5} | "
@@ -137,13 +150,13 @@ def run_rl_experiment(env, encoder, agent, duration_steps=60, step_interval=0.01
 
 if __name__ == "__main__":
     env = MutantEnv(cli_path="./protocol_manager", flow_id=1)
-    protocol_pool = ["cubic", "bbr", "vegas"]
+    protocol_pool = ["cubic", "hybla", "bbr", "westwood", "veno", "vegas", "yeah", "bic", "htcp", "highspeed", "illinois"]
 
-    # Instantiate the new PyTorch Encoder
-    encoder = MutantEncoder()
-    encoder.eval()
+    # Instantiate Autoencoder
+    model = MutantAutoencoder(input_dim=51)
+    model.load_state_dict(torch.load('mutant_autoencoder.pth'))
 
     # Instantiate the Contextual MAB Agent
     agent = LinUCBAgent(protocol_pool, latent_dim=16, alpha=0.5)
 
-    run_rl_experiment(env, encoder, agent, duration_steps=3000, step_interval=0.01)
+    run_rl_experiment(env, model, agent, duration_steps=3000, step_interval=0.01)

@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include "include/cc_iface.h"
 #include <string.h>
 #include <time.h>
@@ -21,30 +20,43 @@ void set_protocol(int flow_id, const char* protocol_name) {
         printf("Failed to switch to %s. Did you run with sudo?\n", protocol_name);
     }
 }
-FlowState get_state(int flow_id) {
-    FlowState best_state;
-    best_state.flow_id = flow_id;
-    best_state.smoothed_rtt = 0.0;
-    best_state.delivery_rate = 0.0;
-    best_state.loss_events = 0;
+
+// We use a localized struct here to grab all the extra features Python needs
+typedef struct {
+    char current_protocol[32];
+    double smoothed_rtt;
+    double mdev_us;
+    double min_rtt;
+    double cwnd;
+    double advmss;
+    double delivered;
+    double lost_out;
+    double in_flight; // mapped from unacked
+    double retrans_out;
+    double delivery_rate;
+    double throughput_mbps;
+    double loss;
+} FullState;
+
+FullState get_extended_state(int flow_id) {
+    FullState best_state;
+    memset(&best_state, 0, sizeof(best_state));
     strncpy(best_state.current_protocol, "unknown", sizeof(best_state.current_protocol));
 
-    // Force ss to look specifically at the Mahimahi server IP
-    // FILE *fp = popen("ss -ti dst 10.0.0.1:5201", "r");
     FILE *fp = popen("ss -ti state established dst 10.0.0.1:5201", "r");
     if (fp == NULL) {
         printf("Failed to run ss command\n");
         return best_state;
     }
 
-    char line[256];
-    double max_rate = -1.0;
+    char line[512];
+    double max_cwnd = -1.0; // Track highest cwnd to ignore idle control sockets
 
-    // Read every line from the ss output
     while (fgets(line, sizeof(line), fp) != NULL) {
-        FlowState temp_state = best_state;
+        FullState temp_state;
+        memset(&temp_state, 0, sizeof(temp_state));
 
-        // 1. Identify the protocol first
+        // 1. Identify the protocol
         const char* known_protocols[] = {"cubic", "hybla", "bbr", "westwood", "veno", "vegas", "yeah", "bic", "htcp", "highspeed", "illinois"};
         int num_protocols = 11;
         for (int i = 0; i < num_protocols; i++) {
@@ -54,7 +66,7 @@ FlowState get_state(int flow_id) {
             }
         }
 
-        // 2. Automatically parse all key:value pairs dynamically
+        // 2. Parse TCP Info Key-Value pairs
         char *token = strtok(line, " \t\n");
         while (token != NULL) {
             char *colon = strchr(token, ':');
@@ -64,16 +76,27 @@ FlowState get_state(int flow_id) {
                 char *key = token;
                 char *value = colon + 1;
 
-                if (strcmp(key, "rtt") == 0) {
-                    sscanf(value, "%lf", &temp_state.smoothed_rtt);
+                if (strcmp(key, "cwnd") == 0) sscanf(value, "%lf", &temp_state.cwnd);
+                else if (strcmp(key, "rtt") == 0) {
+                    // rtt comes formatted as RTT/MDEV (e.g., 32.4/0.8)
+                    sscanf(value, "%lf/%lf", &temp_state.smoothed_rtt, &temp_state.mdev_us);
                 }
-                else if (strcmp(key, "cwnd") == 0) {
-                    sscanf(value, "%lf", &temp_state.cwnd);
+                else if (strcmp(key, "minrtt") == 0) sscanf(value, "%lf", &temp_state.min_rtt);
+                else if (strcmp(key, "advmss") == 0) sscanf(value, "%lf", &temp_state.advmss);
+                else if (strcmp(key, "delivered") == 0) sscanf(value, "%lf", &temp_state.delivered);
+                else if (strcmp(key, "unacked") == 0) sscanf(value, "%lf", &temp_state.in_flight);
+                else if (strcmp(key, "retrans") == 0) {
+                    // Format is usually retrans:0/1
+                    char* slash = strchr(value, '/');
+                    if (slash) sscanf(slash + 1, "%lf", &temp_state.retrans_out);
                 }
-                // Add new metrics here if needed
+                else if (strcmp(key, "lost") == 0) sscanf(value, "%lf", &temp_state.lost_out);
             }
-            // Handle edge cases where 'ss' uses a space instead of a colon (like delivery_rate)
-            else if (strcmp(token, "delivery_rate") == 0 || strcmp(token, "send") == 0) {
+            else if (strcmp(token, "send") == 0) {
+                token = strtok(NULL, " \t\n");
+                if (token) sscanf(token, "%lf", &temp_state.throughput_mbps);
+            }
+            else if (strcmp(token, "delivery_rate") == 0) {
                 token = strtok(NULL, " \t\n");
                 if (token) sscanf(token, "%lf", &temp_state.delivery_rate);
             }
@@ -81,9 +104,9 @@ FlowState get_state(int flow_id) {
             token = strtok(NULL, " \t\n");
         }
 
-        // 3. Evaluate if this connection is the Data Channel
-        if (temp_state.delivery_rate > max_rate) {
-            max_rate = temp_state.delivery_rate;
+        // 3. Find the FAT flow (Data Socket) by checking CWND size
+        if (temp_state.cwnd > max_cwnd) {
+            max_cwnd = temp_state.cwnd;
             best_state = temp_state;
         }
     }
@@ -91,12 +114,24 @@ FlowState get_state(int flow_id) {
     return best_state;
 }
 
+// Keep the cc_iface.h stub happy but route the logic to the new struct
+FlowState get_state(int flow_id) {
+    FlowState fs;
+    return fs;
+}
+
 void get_metrics(int flow_id) {
-    FlowState state = get_state(flow_id);
-    // Print in JSON format including the new cwnd metric
-    // Change "delivery_rate" to "throughput_mbps" in the JSON string
-    printf("{\"protocol\": \"%s\", \"rtt_ms\": %.2f, \"cwnd\": %.0f, \"throughput_mbps\": %.2f}\n",
-           state.current_protocol, state.smoothed_rtt, state.cwnd, state.delivery_rate);
+    FullState s = get_extended_state(flow_id);
+
+    // Output ALL features expected by Python in a strict JSON format
+    printf("{\"protocol\": \"%s\", \"rtt_ms\": %.2f, \"smoothed_rtt\": %.2f, \"mdev_us\": %.2f, "
+           "\"min_rtt\": %.2f, \"cwnd\": %.0f, \"advmss\": %.0f, \"delivered\": %.0f, "
+           "\"lost_out\": %.0f, \"in_flight\": %.0f, \"retrans_out\": %.0f, "
+           "\"delivery_rate\": %.2f, \"throughput_mbps\": %.2f, \"loss\": %.0f}\n",
+           s.current_protocol, s.smoothed_rtt, s.smoothed_rtt, s.mdev_us,
+           s.min_rtt, s.cwnd, s.advmss, s.delivered,
+           s.lost_out, s.in_flight, s.retrans_out,
+           s.delivery_rate, s.throughput_mbps, s.lost_out);
 }
 
 void reset(int flow_id) {
