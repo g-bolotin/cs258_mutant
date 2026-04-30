@@ -16,12 +16,8 @@ typedef struct {
     long last_switch_timestamp;
 } FlowState;
 
-// The tiny C interface boundary
-void init(int flow_id, const char* protocol_pool);
 void set_protocol(int flow_id, const char* protocol_name);
 FlowState get_state(int flow_id);
 void get_metrics(int flow_id); // Prints metrics for CLI consumption
-void reset(int flow_id);
-void shutdown_flow(int flow_id);
 
 #endif // CC_IFACE_H
