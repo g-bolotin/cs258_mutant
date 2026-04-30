@@ -4,6 +4,10 @@
 #include <string.h>
 #include <time.h>
 
+void init(int flow_id, const char* protocol_pool) {
+    printf("[KERNEL/NETLINK STUB] Initialized flow %d with pool: %s\n", flow_id, protocol_pool);
+}
+
 void set_protocol(int flow_id, const char* protocol_name) {
     char command[256];
     // Write the new protocol directly to the procfs system file
@@ -128,4 +132,12 @@ void get_metrics(int flow_id) {
            s.min_rtt, s.cwnd, s.advmss, s.delivered,
            s.lost_out, s.in_flight, s.retrans_out,
            s.delivery_rate, s.throughput_mbps, s.lost_out);
+}
+
+void reset(int flow_id) {
+    printf("[KERNEL/NETLINK STUB] Reset flow %d to default state.\n", flow_id);
+}
+
+void shutdown_flow(int flow_id) {
+    printf("[KERNEL/NETLINK STUB] Shut down tracking for flow %d.\n", flow_id);
 }
