@@ -13,8 +13,11 @@ tcp_highspeed \
 tcp_illinois \
 tcp_bbr
 
-Compile protocol_manager:
+Compile protocol_manager if needed (provided already):
 - gcc csrc/protocol_manager.c csrc/cli.c -o protocol_manager
+
+First ensure that you have the pretrained autoencoder. If you need data, unzip master_collected_traces.zip and
+run gen_data.py. Then run train_autoenc.py.
 
 To ensure MahiMahi works:
 - sudo sysctl -w net.ipv4.ip_forward=1
@@ -27,6 +30,9 @@ Or, to test mm-link:
 - mm-link 12mbps.trace 12mbps.trace
 - Made with seq 1 60000 > 12mbps.trace
 - 12 Mbps trace (1 packet per millisecond for 60 seconds)
+
+If you find that it over-relies on Hypla and has huge bufferbloat bc of the near-infinite buffer size, try limiting packet amount:
+- mm-link 12mbps.trace 12mbps.trace --uplink-queue="droptail" --uplink-queue-args="packets=100"
 
 In another terminal window, run an iperf3 server:
 - iperf3 -s
