@@ -7,6 +7,7 @@ from reward import compute_reward
 from autoencoder import MutantAutoencoder
 from learner import LinUCBAgent
 from collections import deque
+import joblib
 
 class NetworkHistory:
     def __init__(self, track_keys):
@@ -46,7 +47,7 @@ class NetworkHistory:
 
         return temporal_features
 
-def run_rl_experiment(env, encoder, agent, duration_steps=60, step_interval=0.01):
+def run_rl_experiment(env, encoder, agent, scaler, duration_steps=60, step_interval=0.01):
     print("--- Starting Mutant RL Training Run (LinUCB) ---")
 
     # Initialize the network
@@ -86,8 +87,11 @@ def run_rl_experiment(env, encoder, agent, duration_steps=60, step_interval=0.01
             # Combine them (15 + 36 = 51 features)
             raw_features = base_features + temporal_features
 
+            # Reshape to 2D for the scaler, then back to 1D
+            scaled_features = scaler.transform([raw_features])[0]
+
             # Format as a PyTorch tensor: (batch=1, seq_len=1, features=55)
-            state_tensor = torch.FloatTensor(raw_features).unsqueeze(0).unsqueeze(0)
+            state_tensor = torch.FloatTensor(scaled_features).unsqueeze(0).unsqueeze(0)
 
             # 2. Encode state
             with torch.no_grad():
@@ -159,4 +163,6 @@ if __name__ == "__main__":
     # Instantiate the Contextual MAB Agent
     agent = LinUCBAgent(protocol_pool, latent_dim=16, alpha=0.5)
 
-    run_rl_experiment(env, model, agent, duration_steps=3000, step_interval=0.01)
+    scaler = joblib.load('mutant_scaler.save')
+
+    run_rl_experiment(env, model, agent, scaler, duration_steps=3000, step_interval=0.01)

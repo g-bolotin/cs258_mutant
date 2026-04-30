@@ -3,8 +3,11 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, DataLoader
 from autoencoder import MutantAutoencoder
+import joblib
+from sklearn.preprocessing import MinMaxScaler
 
 def load_and_prep_data(csv_data_path, input_dim=51):
     print(f"Loading data from {csv_data_path}...")
@@ -28,10 +31,22 @@ def load_and_prep_data(csv_data_path, input_dim=51):
     # Convert to PyTorch Tensors
     # Shape needs to be (num_samples, seq_len=1, features=51)
     raw_array = features_df.values.astype(np.float32)
-    tensor_data = torch.tensor(raw_array).unsqueeze(1)
+    scaler = MinMaxScaler()
+    scaled_array = scaler.fit_transform(raw_array)
 
-    print(f"Successfully loaded {tensor_data.shape[0]} samples.")
-    return tensor_data
+    # Save the scaler so the RL runner can use it live
+    joblib.dump(scaler, 'mutant_scaler.save')
+    print("Scaler saved to mutant_scaler.save")
+
+    X_train, X_test = train_test_split(scaled_array, test_size=0.2, random_state=42)
+
+    print(f"Training samples: {len(X_train)} | Validation samples: {len(X_test)}")
+
+    train_tensor = torch.tensor(X_train).unsqueeze(1)
+    test_tensor = torch.tensor(X_test).unsqueeze(1)
+
+    return train_tensor, test_tensor
+
 
 def train_offline_autoencoder(csv_data_path, epochs=100, batch_size=32):
     print("--- Starting Offline Autoencoder Training ---")
@@ -42,41 +57,41 @@ def train_offline_autoencoder(csv_data_path, epochs=100, batch_size=32):
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    # Load Real Data and Create DataLoader
-    tensor_data = load_and_prep_data(csv_data_path, input_dim=input_dimension)
+    # Get both datasets
+    train_tensor, test_tensor = load_and_prep_data(csv_data_path, input_dim=input_dimension)
 
-    # TensorDataset wraps the tensor, DataLoader handles batching/shuffling
-    dataset = TensorDataset(tensor_data)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # Create two DataLoaders
+    train_loader = DataLoader(TensorDataset(train_tensor), batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(TensorDataset(test_tensor), batch_size=batch_size, shuffle=False)
 
-    # The Training Loop
-    model.train()
     for epoch in range(epochs):
-        epoch_loss = 0.0
-
-        # Iterate automatically through the shuffled batches
-        for batch_tuple in dataloader:
-            batch = batch_tuple[0] # Extract the tensor from the tuple
-
+        # --- TRAINING PHASE ---
+        model.train()
+        train_loss = 0.0
+        for batch_tuple in train_loader:
+            batch = batch_tuple[0]
             optimizer.zero_grad()
-
-            # Forward pass: Compress to 16, expand back to 51
-            reconstructed_batch = model(batch)
-
-            # Calculate loss against the original input
-            loss = criterion(reconstructed_batch, batch.squeeze(1))
-
-            # Backpropagation
+            reconstructed = model(batch)
+            loss = criterion(reconstructed, batch.squeeze(1))
             loss.backward()
             optimizer.step()
+            train_loss += loss.item() * batch.size(0)
 
-            epoch_loss += loss.item() * batch.size(0) # Track total loss
+        # --- VALIDATION PHASE ---
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for batch_tuple in test_loader:
+                batch = batch_tuple[0]
+                reconstructed = model(batch)
+                loss = criterion(reconstructed, batch.squeeze(1))
+                val_loss += loss.item() * batch.size(0)
 
-        # Calculate average loss for the epoch
-        avg_epoch_loss = epoch_loss / len(dataset)
+        avg_train = train_loss / len(train_tensor)
+        avg_val = val_loss / len(test_tensor)
 
         if (epoch + 1) % 10 == 0:
-            print(f"Epoch [{epoch+1}/{epochs}], Loss: {avg_epoch_loss:.6f}")
+            print(f"Epoch [{epoch + 1}/{epochs}] | Train Loss: {avg_train:.6f} | Val Loss: {avg_val:.6f}")
 
     print("Training Complete")
 
