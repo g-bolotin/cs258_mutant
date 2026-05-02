@@ -9,6 +9,7 @@ from autoencoder import MutantAutoencoder
 from learner import LinUCBAgent
 from collections import deque
 import joblib
+from mpts import run_mpts
 
 class NetworkHistory:
     def __init__(self, track_keys):
@@ -125,6 +126,10 @@ if __name__ == "__main__":
     env = MutantEnv(cli_path="./protocol_manager", flow_id=1)
     protocol_pool = ["cubic", "hybla", "bbr", "westwood", "veno", "vegas", "yeah", "bic", "htcp", "highspeed", "illinois"]
 
+    # 1. Run MPTS to extract the top K=6 protocols (T=100) before RL loop starts
+    # Using defaults mentioned in Pappone et al. (Section 6.1 / 6.3)
+    selected_protocols = run_mpts(env, protocol_pool, target_k=6, T=100, step_interval=0.01)
+
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     model_path = os.path.join(BASE_DIR, 'mutant_autoencoder.pth')
@@ -138,6 +143,6 @@ if __name__ == "__main__":
     scaler = joblib.load(scaler_path)
 
     # Instantiate the Contextual MAB Agent
-    agent = LinUCBAgent(protocol_pool, latent_dim=16, alpha=0.5)
+    agent = LinUCBAgent(selected_protocols, latent_dim=16, alpha=0.5)
 
     run_rl_experiment(env, model, agent, scaler, duration_steps=3000, step_interval=0.01)
