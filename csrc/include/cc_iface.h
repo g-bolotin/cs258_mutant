@@ -16,8 +16,8 @@ typedef struct {
     long last_switch_timestamp;
 } FlowState;
 
-void set_protocol(int flow_id, const char* protocol_name);
+int set_protocol(int flow_id, const char* protocol_name);
 FlowState get_state(int flow_id);
-void get_metrics(int flow_id); // Prints metrics for CLI consumption
+int get_metrics(int flow_id); // Prints metrics for CLI consumption
 
 #endif // CC_IFACE_H

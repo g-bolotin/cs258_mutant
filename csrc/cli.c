@@ -24,8 +24,7 @@ int main(int argc, char *argv[]) {
             flow_id = atoi(argv[++i]);
         }
         else if (strcmp(argv[i], "--set") == 0 && i + 1 < argc && flow_id != -1) {
-            set_protocol(flow_id, argv[++i]);
-            return 0;
+            return set_protocol(flow_id, argv[++i]) == 0 ? 0 : 1;
         }
         else if (strcmp(argv[i], "--read-state") == 0 && flow_id != -1) {
             FlowState state = get_state(flow_id);
@@ -34,8 +33,7 @@ int main(int argc, char *argv[]) {
             return 0;
         }
         else if (strcmp(argv[i], "--read-metrics") == 0 && flow_id != -1) {
-            get_metrics(flow_id);
-            return 0;
+            return get_metrics(flow_id) == 0 ? 0 : 1;
         }
     }
 
