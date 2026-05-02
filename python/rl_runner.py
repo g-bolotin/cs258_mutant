@@ -127,8 +127,8 @@ if __name__ == "__main__":
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    model_path = os.path.join(BASE_DIR, 'mutant_autoencoder.pth')
-    scaler_path = os.path.join(BASE_DIR, 'mutant_scaler.save')
+    model_path = os.path.join(BASE_DIR, '../mutant_autoencoder.pth')
+    scaler_path = os.path.join(BASE_DIR, '../mutant_scaler.save')
 
     print(f"Looking for model at: {model_path}")
 
