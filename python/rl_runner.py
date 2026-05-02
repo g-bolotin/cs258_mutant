@@ -55,16 +55,15 @@ def run_rl_experiment(env, encoder, agent, scaler, duration_steps=60, step_inter
     env.reset(initial_protocol="cubic")
     log_filename = f"rl_training_{int(time.time())}.csv"
 
-    # The 15 base features we want to pull directly from the current step
+    # Paper-aligned 55-dim state:
+    # 10 raw non-bold metrics + 45 temporal stats from 5 bold metrics.
     base_keys = [
-        'cwnd', 'rtt_ms', 'smoothed_rtt', 'mdev_us', 'min_rtt',
-        'advmss', 'delivered', 'lost_out', 'in_flight', 'retrans_out',
-        'delivery_rate', 'throughput_mbps', 'loss', 'prev_proto', 'crt_proto'
+        'cwnd', 'rtt_ms', 'min_rtt', 'advmss', 'delivered',
+        'retrans_out', 'delivery_rate', 'prev_proto', 'crt_proto', 'loss_rate'
     ]
 
-    # The subset we want to track temporally (Mean, Min, Max)
-    # 4 keys * 3 stats * 3 windows = 36 temporal features
-    temporal_keys = ['rtt_ms', 'throughput_mbps', 'cwnd', 'delivery_rate']
+    # 5 keys * 3 stats * 3 windows = 45 temporal features
+    temporal_keys = ['smoothed_rtt', 'mdev_us', 'lost_out', 'in_flight', 'throughput_mbps']
     history = NetworkHistory(track_keys=temporal_keys)
 
     for step in range(duration_steps):
@@ -82,7 +81,7 @@ def run_rl_experiment(env, encoder, agent, scaler, duration_steps=60, step_inter
         # Calculate the 36 temporal features (Min, Max, Mean across windows)
         temporal_features = history.get_temporal_features()
 
-        # Combine them (15 + 36 = 51 features)
+        # Combine them (10 + 45 = 55 features)
         raw_features = base_features + temporal_features
 
         # Reshape to 2D for the scaler, then back to 1D
@@ -134,7 +133,7 @@ if __name__ == "__main__":
     print(f"Looking for model at: {model_path}")
 
     # Instantiate Autoencoder
-    model = MutantAutoencoder(input_dim=51)
+    model = MutantAutoencoder(input_dim=55)
     model.load_state_dict(torch.load(model_path))
     scaler = joblib.load(scaler_path)
 

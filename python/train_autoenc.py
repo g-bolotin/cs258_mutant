@@ -9,7 +9,7 @@ from autoencoder import MutantAutoencoder
 import joblib
 from sklearn.preprocessing import MinMaxScaler
 
-def load_and_prep_data(csv_data_path, input_dim=51):
+def load_and_prep_data(csv_data_path, input_dim=55):
     print(f"Loading data from {csv_data_path}...")
 
     df = pd.read_csv(csv_data_path)
@@ -29,7 +29,7 @@ def load_and_prep_data(csv_data_path, input_dim=51):
         features_df = features_df.iloc[:, :input_dim]
 
     # Convert to PyTorch Tensors
-    # Shape needs to be (num_samples, seq_len=1, features=51)
+    # Shape needs to be (num_samples, seq_len=1, features=55)
     raw_array = features_df.values.astype(np.float32)
     scaler = MinMaxScaler()
     scaled_array = scaler.fit_transform(raw_array)
@@ -52,7 +52,7 @@ def train_offline_autoencoder(csv_data_path, epochs=100, batch_size=32):
     print("--- Starting Offline Autoencoder Training ---")
 
     # Initialize the Model, Loss function, and Optimizer
-    input_dimension = 51
+    input_dimension = 55
     model = MutantAutoencoder(input_dim=input_dimension, hidden_dim=32, latent_dim=16)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -101,4 +101,4 @@ def train_offline_autoencoder(csv_data_path, epochs=100, batch_size=32):
     print(f"Model successfully saved to {save_path}")
 
 if __name__ == "__main__":
-    train_offline_autoencoder("../trcgen/master_collected_traces.csv", epochs=100, batch_size=32)
+    train_offline_autoencoder("../trcgen/master_collected_traces_v55.csv", epochs=100, batch_size=32)

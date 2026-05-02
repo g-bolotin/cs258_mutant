@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class MutantAutoencoder(nn.Module):
-    def __init__(self, input_dim=51, hidden_dim=32, latent_dim=16):
+    def __init__(self, input_dim=55, hidden_dim=32, latent_dim=16):
         super(MutantAutoencoder, self).__init__()
 
         # --- ENCODER ---

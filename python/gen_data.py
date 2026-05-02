@@ -18,16 +18,15 @@ def collect_training_data(env, duration_steps=5000, step_interval=0.01):
     print("--- Starting Offline Data Collection ---")
 
     env.reset(initial_protocol="cubic")
-    log_filename = "master_collected_traces.csv"
+    log_filename = "master_collected_traces_v55.csv"
 
     protocol_pool = ["cubic", "hybla", "bbr", "westwood", "veno", "vegas", "yeah", "bic", "htcp", "highspeed", "illinois"]
 
     base_keys = [
-        'cwnd', 'rtt_ms', 'smoothed_rtt', 'mdev_us', 'min_rtt',
-        'advmss', 'delivered', 'lost_out', 'in_flight', 'retrans_out',
-        'delivery_rate', 'throughput_mbps', 'loss', 'prev_proto', 'crt_proto'
+        'cwnd', 'rtt_ms', 'min_rtt', 'advmss', 'delivered',
+        'retrans_out', 'delivery_rate', 'prev_proto', 'crt_proto', 'loss_rate'
     ]
-    temporal_keys = ['rtt_ms', 'throughput_mbps', 'cwnd', 'delivery_rate']
+    temporal_keys = ['smoothed_rtt', 'mdev_us', 'lost_out', 'in_flight', 'throughput_mbps']
 
     history = NetworkHistory(track_keys=temporal_keys)
     feature_headers = get_feature_headers(base_keys, temporal_keys)

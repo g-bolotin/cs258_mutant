@@ -75,24 +75,28 @@ def collect_training_data(args):
         "illinois",
         "cdg",
     ]
+    # Paper-aligned feature layout (55):
+    # - 10 raw (non-bold Table-1 fields)
+    # - 5 bold fields expanded across 3 windows x (min,max,mean) = 45
     base_keys = [
         "cwnd",
         "rtt_ms",
-        "smoothed_rtt",
-        "mdev_us",
         "min_rtt",
         "advmss",
         "delivered",
-        "lost_out",
-        "in_flight",
         "retrans_out",
         "delivery_rate",
-        "throughput_mbps",
-        "loss",
         "prev_proto",
         "crt_proto",
+        "loss_rate",
     ]
-    temporal_keys = ["rtt_ms", "throughput_mbps", "cwnd", "delivery_rate"]
+    temporal_keys = [
+        "smoothed_rtt",
+        "mdev_us",
+        "lost_out",
+        "in_flight",
+        "throughput_mbps",
+    ]
     history = NetworkHistory(track_keys=temporal_keys)
     feature_headers = get_feature_headers(base_keys, temporal_keys)
     csv_headers = ["step", "action_taken"] + feature_headers
@@ -197,7 +201,7 @@ def build_parser():
     parser = argparse.ArgumentParser(description="Collect Mutant encoder data via Mahimahi + iperf.")
     parser.add_argument("--cli-path", default="../protocol_manager", help="Path to protocol_manager binary.")
     parser.add_argument("--flow-id", type=int, default=1, help="Flow ID passed to protocol_manager.")
-    parser.add_argument("--output", default="../trcgen/master_collected_traces.csv", help="Output CSV path.")
+    parser.add_argument("--output", default="../trcgen/master_collected_traces_v55.csv", help="Output CSV path.")
     parser.add_argument("--duration-steps", type=int, default=5000, help="Number of sampling steps.")
     parser.add_argument("--step-interval", type=float, default=0.01, help="Seconds between samples.")
     parser.add_argument(
