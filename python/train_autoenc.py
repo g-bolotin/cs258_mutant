@@ -8,6 +8,7 @@ from torch.utils.data import TensorDataset, DataLoader
 from autoencoder import MutantAutoencoder
 import joblib
 from sklearn.preprocessing import MinMaxScaler
+import os
 
 def load_and_prep_data(csv_data_path, input_dim=55):
     print(f"Loading data from {csv_data_path}...")
@@ -101,4 +102,6 @@ def train_offline_autoencoder(csv_data_path, epochs=100, batch_size=32):
     print(f"Model successfully saved to {save_path}")
 
 if __name__ == "__main__":
-    train_offline_autoencoder("../trcgen/master_collected_traces_v55.csv", epochs=100, batch_size=32)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(BASE_DIR, '../trcgen/master_collected_traces_v55.csv')
+    train_offline_autoencoder(path, epochs=100, batch_size=32)
