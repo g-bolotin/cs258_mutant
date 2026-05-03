@@ -12,16 +12,72 @@ import joblib
 from mpts import run_mpts
 
 class NetworkHistory:
+    class _RollingWindowStats:
+        def __init__(self, maxlen, num_features):
+            self.maxlen = maxlen
+            self.num_features = num_features
+            self.entries = deque()
+            self.sum = np.zeros(num_features, dtype=np.float64)
+            self.min_deques = [deque() for _ in range(num_features)]
+            self.max_deques = [deque() for _ in range(num_features)]
+            self.next_index = 0
+
+        def append(self, values):
+            idx = self.next_index
+            self.next_index += 1
+
+            arr = np.asarray(values, dtype=np.float64)
+            self.entries.append((idx, arr))
+            self.sum += arr
+
+            for i in range(self.num_features):
+                v = float(arr[i])
+                min_q = self.min_deques[i]
+                while min_q and min_q[-1][1] >= v:
+                    min_q.pop()
+                min_q.append((idx, v))
+
+                max_q = self.max_deques[i]
+                while max_q and max_q[-1][1] <= v:
+                    max_q.pop()
+                max_q.append((idx, v))
+
+            if len(self.entries) > self.maxlen:
+                old_idx, old_arr = self.entries.popleft()
+                self.sum -= old_arr
+                for i in range(self.num_features):
+                    min_q = self.min_deques[i]
+                    if min_q and min_q[0][0] == old_idx:
+                        min_q.popleft()
+                    max_q = self.max_deques[i]
+                    if max_q and max_q[0][0] == old_idx:
+                        max_q.popleft()
+
+        def empty(self):
+            return len(self.entries) == 0
+
+        def stats(self):
+            if self.empty():
+                zeros = np.zeros(self.num_features, dtype=np.float64)
+                return zeros, zeros, zeros
+
+            count = len(self.entries)
+            mins = np.array([q[0][1] for q in self.min_deques], dtype=np.float64)
+            maxs = np.array([q[0][1] for q in self.max_deques], dtype=np.float64)
+            means = self.sum / count
+            return mins, maxs, means
+
     def __init__(self, track_keys):
         self.track_keys = track_keys
+        num_features = len(self.track_keys)
         # Initialize sliding windows with max lengths from the paper
-        self.short_win = deque(maxlen=10)
-        self.med_win = deque(maxlen=200)
-        self.long_win = deque(maxlen=1000)
+        self.short_win = self._RollingWindowStats(maxlen=10, num_features=num_features)
+        self.med_win = self._RollingWindowStats(maxlen=200, num_features=num_features)
+        self.long_win = self._RollingWindowStats(maxlen=1000, num_features=num_features)
 
     def update(self, metrics):
         """Pulls the specific keys we want to track and adds them to the windows."""
-        current_vals = [metrics.get(k, 0.0) for k in self.track_keys]
+        current_vals = [float(metrics.get(k, 0.0) or 0.0) for k in self.track_keys]
         self.short_win.append(current_vals)
         self.med_win.append(current_vals)
         self.long_win.append(current_vals)
@@ -31,25 +87,20 @@ class NetworkHistory:
         temporal_features = []
 
         # If no data yet, return an array of zeros
-        if not self.short_win:
+        if self.short_win.empty():
             num_stats = len(self.track_keys) * 3 * 3  # (keys * [min, max, mean] * 3 windows)
             return [0.0] * num_stats
 
         # Calculate stats for all three windows
         for window in [self.short_win, self.med_win, self.long_win]:
-            # Convert deque to numpy array for fast column-wise math
-            arr = np.array(window)
-
-            mins = np.min(arr, axis=0)
-            maxs = np.max(arr, axis=0)
-            means = np.mean(arr, axis=0)
+            mins, maxs, means = window.stats()
 
             # Extend the feature list
             temporal_features.extend(mins.tolist() + maxs.tolist() + means.tolist())
 
         return temporal_features
 
-def run_rl_experiment(env, encoder, agent, scaler, duration_steps=60, step_interval=0.01):
+def run_rl_experiment(env, encoder, agent, scaler, duration_steps=60, step_interval=0.01, rtt_penalty_weight=0.1):
     print("--- Starting Mutant RL Training Run (LinUCB) ---")
 
     # Initialize the network
@@ -93,7 +144,7 @@ def run_rl_experiment(env, encoder, agent, scaler, duration_steps=60, step_inter
 
         # 2. Encode state
         with torch.no_grad():
-            latent_tensor = model.encode(state_tensor)
+            latent_tensor = encoder.encode(state_tensor)
             # Convert the 16-dim tensor back to a standard numpy array for LinUCB
             z_t = latent_tensor.numpy().flatten()
 
@@ -115,7 +166,7 @@ def run_rl_experiment(env, encoder, agent, scaler, duration_steps=60, step_inter
         throughput = new_metrics.get('throughput_mbps', 0.0)
         rtt = new_metrics.get('rtt_ms', 0.0)
 
-        reward = compute_reward(new_metrics, rtt_penalty_weight=0.1)
+        reward = compute_reward(new_metrics, rtt_penalty_weight=rtt_penalty_weight)
 
         # 7. Update learner
         agent.update(action, z_t, reward)
@@ -123,12 +174,20 @@ def run_rl_experiment(env, encoder, agent, scaler, duration_steps=60, step_inter
         print(f"Step {step:02d} | Action: {action.upper():<10} | Reward: {reward:6.2f} | RTT: {rtt:6.2f}ms | TP: {throughput:5.2f}Mbps")
 
 if __name__ == "__main__":
+    rtt_penalty_weight = float(os.environ.get("RTT_PENALTY_WEIGHT", "0.1"))
     env = MutantEnv(cli_path="./protocol_manager", flow_id=1)
     protocol_pool = ["cubic", "hybla", "bbr", "westwood", "veno", "vegas", "yeah", "bic", "htcp", "highspeed", "illinois"]
 
     # 1. Run MPTS to extract the top K=6 protocols (T=100) before RL loop starts
     # Using defaults mentioned in Pappone et al. (Section 6.1 / 6.3)
-    selected_protocols = run_mpts(env, protocol_pool, target_k=6, T=100, step_interval=0.01)
+    selected_protocols = run_mpts(
+        env,
+        protocol_pool,
+        target_k=6,
+        T=100,
+        step_interval=0.01,
+        rtt_penalty_weight=rtt_penalty_weight,
+    )
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -145,4 +204,12 @@ if __name__ == "__main__":
     # Instantiate the Contextual MAB Agent
     agent = LinUCBAgent(selected_protocols, latent_dim=16, alpha=0.5)
 
-    run_rl_experiment(env, model, agent, scaler, duration_steps=3000, step_interval=0.01)
+    run_rl_experiment(
+        env,
+        model,
+        agent,
+        scaler,
+        duration_steps=3000,
+        step_interval=0.01,
+        rtt_penalty_weight=rtt_penalty_weight,
+    )

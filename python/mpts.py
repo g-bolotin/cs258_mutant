@@ -2,7 +2,7 @@ import math
 import time
 from reward import compute_reward
 
-def run_mpts(env, protocols, target_k=6, T=100, step_interval=0.01):
+def run_mpts(env, protocols, target_k=6, T=100, step_interval=0.01, rtt_penalty_weight=0.1):
     print(f"--- Running MPTS (Mutant Protocol Team Selection) ---")
     print(f"Target Team Size (k): {target_k}, Total Budget (T): {T}")
 
@@ -36,7 +36,7 @@ def run_mpts(env, protocols, target_k=6, T=100, step_interval=0.01):
                 time.sleep(step_interval)
                 metrics = env.get_metrics()
                 if metrics:
-                    r = compute_reward(metrics, rtt_penalty_weight=0.1)
+                    r = compute_reward(metrics, rtt_penalty_weight=rtt_penalty_weight)
                     total_reward[p] += r
                 pulls[p] += 1
 

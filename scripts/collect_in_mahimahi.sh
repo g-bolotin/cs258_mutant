@@ -18,6 +18,10 @@ TRACES_DIR="${TRACES_DIR:-$ROOT_DIR/trcgen/traces}"
 AUTO_DISCOVER="${AUTO_DISCOVER:-0}"
 DEFAULT_DELAY_MS="${DEFAULT_DELAY_MS:-50}"
 INCLUDE_UP_ONLY="${INCLUDE_UP_ONLY:-1}"
+UPLINK_QUEUE="${UPLINK_QUEUE:-droptail}"
+UPLINK_QUEUE_ARGS="${UPLINK_QUEUE_ARGS:-packets=100}"
+DOWNLINK_QUEUE="${DOWNLINK_QUEUE:-droptail}"
+DOWNLINK_QUEUE_ARGS="${DOWNLINK_QUEUE_ARGS:-packets=100}"
 
 # Multi-environment mode (run outside Mahimahi with MULTI_ENV=1).
 # Format:
@@ -138,6 +142,7 @@ echo "AUTO_DISCOVER=$AUTO_DISCOVER"
 echo "ENV_SPECS=$ENV_SPECS"
 echo "COMBINE_OUTPUT=$COMBINE_OUTPUT"
 echo "Base output CSV=$OUTPUT_CSV"
+echo "Queue config: uplink=${UPLINK_QUEUE}(${UPLINK_QUEUE_ARGS}) downlink=${DOWNLINK_QUEUE}(${DOWNLINK_QUEUE_ARGS})"
 
 output_dir="$(dirname "$OUTPUT_CSV")"
 output_file="$(basename "$OUTPUT_CSV")"
@@ -175,7 +180,11 @@ for spec in "${specs[@]}"; do
   echo "[env=$env_name] delay=${delay_ms}ms up=$(basename "$up_path") down=$(basename "$down_path")"
   echo "[env=$env_name] output=$env_output"
 
-  mm-delay "$delay_ms" mm-link "$up_path" "$down_path" -- \
+  mm-delay "$delay_ms" mm-link "$up_path" "$down_path" \
+    --uplink-queue "$UPLINK_QUEUE" \
+    --uplink-queue-args "$UPLINK_QUEUE_ARGS" \
+    --downlink-queue "$DOWNLINK_QUEUE" \
+    --downlink-queue-args "$DOWNLINK_QUEUE_ARGS" -- \
     /bin/bash -lc "
       cd '$ROOT_DIR' && \
       DURATION_STEPS='$PER_ENV_STEPS' \

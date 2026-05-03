@@ -1,0 +1,148 @@
+{
+  "config": {
+    "root_dir": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen",
+    "trace_name": "ATT_LTE_driving",
+    "protocols_filter": "",
+    "pick_mode": "max_rows",
+    "baseline_oneway_ms": 50.0,
+    "subtract_baseline": true,
+    "ellipse_scale": 1.8,
+    "invert_x": true,
+    "title": "Cellular Link (ATT LTE)",
+    "out_png": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/att_tradeoff.png"
+  },
+  "points": [
+    {
+      "protocol": "mutant",
+      "display_name": "Mutant",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_030145/ATT_LTE_driving/mutant_trace.csv",
+      "samples": 2509,
+      "avg_oneway_ms": 10415.106126743722,
+      "avg_throughput_mbps": 1.05749262654444,
+      "std_oneway_ms": 2566.005069980526,
+      "std_throughput_mbps": 0.08055570029721719,
+      "marker": "*",
+      "color": "#f0b12f"
+    },
+    {
+      "protocol": "bbr",
+      "display_name": "BBR",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_035957/ATT_LTE_driving/fixed_bbr_trace.csv",
+      "samples": 6111,
+      "avg_oneway_ms": 8601.748133611522,
+      "avg_throughput_mbps": 1.0723395516282113,
+      "std_oneway_ms": 3729.468952288616,
+      "std_throughput_mbps": 0.08255998392621071,
+      "marker": "^",
+      "color": "#ff3a3a"
+    },
+    {
+      "protocol": "bic",
+      "display_name": "Bic",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_043152/ATT_LTE_driving/fixed_bic_trace.csv",
+      "samples": 6052,
+      "avg_oneway_ms": 8078.630319481163,
+      "avg_throughput_mbps": 1.0608965631196299,
+      "std_oneway_ms": 3735.796979058827,
+      "std_throughput_mbps": 0.08613407297645745,
+      "marker": "D",
+      "color": "#3f7db6"
+    },
+    {
+      "protocol": "cubic",
+      "display_name": "Cubic",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_033336/ATT_LTE_driving/fixed_cubic_trace.csv",
+      "samples": 5822,
+      "avg_oneway_ms": 8295.352370405359,
+      "avg_throughput_mbps": 1.0717416695293713,
+      "std_oneway_ms": 3638.232517696467,
+      "std_throughput_mbps": 0.08488355985866153,
+      "marker": "o",
+      "color": "#2f45e0"
+    },
+    {
+      "protocol": "htcp",
+      "display_name": "HTCP",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_043816/ATT_LTE_driving/fixed_htcp_trace.csv",
+      "samples": 5940,
+      "avg_oneway_ms": 7930.145435101011,
+      "avg_throughput_mbps": 1.0132234006734007,
+      "std_oneway_ms": 3553.648275749028,
+      "std_throughput_mbps": 0.19322190821965518,
+      "marker": "v",
+      "color": "#8f78b8"
+    },
+    {
+      "protocol": "hybla",
+      "display_name": "Hybla",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_035156/ATT_LTE_driving/fixed_hybla_trace.csv",
+      "samples": 6004,
+      "avg_oneway_ms": 8364.417714273817,
+      "avg_throughput_mbps": 1.116427714856762,
+      "std_oneway_ms": 3003.6898998825877,
+      "std_throughput_mbps": 0.07646112347094879,
+      "marker": "D",
+      "color": "#39c1cb"
+    },
+    {
+      "protocol": "illinois",
+      "display_name": "Illinois",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_044401/ATT_LTE_driving/fixed_illinois_trace.csv",
+      "samples": 6190,
+      "avg_oneway_ms": 7936.257066962843,
+      "avg_throughput_mbps": 1.0712651050080775,
+      "std_oneway_ms": 3129.2777099492982,
+      "std_throughput_mbps": 0.08345822667530767,
+      "marker": "d",
+      "color": "#c1bc35"
+    },
+    {
+      "protocol": "vegas",
+      "display_name": "Vegas",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_041829/ATT_LTE_driving/fixed_vegas_trace.csv",
+      "samples": 5823,
+      "avg_oneway_ms": 7428.813289884939,
+      "avg_throughput_mbps": 1.052230637128628,
+      "std_oneway_ms": 3532.514700017788,
+      "std_throughput_mbps": 0.09203264700701981,
+      "marker": "s",
+      "color": "#2c9e2e"
+    },
+    {
+      "protocol": "veno",
+      "display_name": "Veno",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_041147/ATT_LTE_driving/fixed_veno_trace.csv",
+      "samples": 6075,
+      "avg_oneway_ms": 8191.737782469136,
+      "avg_throughput_mbps": 1.0744212345679014,
+      "std_oneway_ms": 3323.9409009546216,
+      "std_throughput_mbps": 0.07307903952727436,
+      "marker": "s",
+      "color": "#4fc5d4"
+    },
+    {
+      "protocol": "westwood",
+      "display_name": "Westwood",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_040541/ATT_LTE_driving/fixed_westwood_trace.csv",
+      "samples": 6266,
+      "avg_oneway_ms": 7558.025707149697,
+      "avg_throughput_mbps": 1.0494093520587298,
+      "std_oneway_ms": 3178.428789012425,
+      "std_throughput_mbps": 0.07621957568236043,
+      "marker": "o",
+      "color": "#b4b93b"
+    },
+    {
+      "protocol": "yeah",
+      "display_name": "YeAH",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_042545/ATT_LTE_driving/fixed_yeah_trace.csv",
+      "samples": 5951,
+      "avg_oneway_ms": 8004.000830700722,
+      "avg_throughput_mbps": 1.0682616366997142,
+      "std_oneway_ms": 3116.934779865003,
+      "std_throughput_mbps": 0.08571615300618798,
+      "marker": "^",
+      "color": "#8c8c8c"
+    }
+  ]
+}

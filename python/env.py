@@ -1,10 +1,15 @@
 import subprocess
 import json
+import os
 
 class MutantEnv:
-    def __init__(self, cli_path="./protocol_manager", flow_id=1):
+    def __init__(self, cli_path="./protocol_manager", flow_id=1, cli_timeout_sec=None):
         self.cli_path = cli_path
         self.flow_id = flow_id
+        # protocol_manager can take >2s while waiting on netlink samples.
+        if cli_timeout_sec is None:
+            cli_timeout_sec = float(os.environ.get("MUTANT_CLI_TIMEOUT_SEC", "6.0"))
+        self.cli_timeout_sec = cli_timeout_sec
 
     def get_metrics(self):
         """
@@ -17,7 +22,7 @@ class MutantEnv:
                 [self.cli_path, "--flow", str(self.flow_id), "--read-metrics"],
                 capture_output=True,
                 text=True,
-                timeout=2
+                timeout=self.cli_timeout_sec
             )
 
             if result.stdout:
@@ -42,7 +47,8 @@ class MutantEnv:
                 [self.cli_path, "--flow", str(self.flow_id), "--set", protocol_name],
                 check=True,
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=self.cli_timeout_sec
             )
         except subprocess.CalledProcessError as e:
             print(f"ERROR: C binary rejected protocol '{protocol_name}'.")

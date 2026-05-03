@@ -1,0 +1,148 @@
+{
+  "config": {
+    "root_dir": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen",
+    "trace_name": "TMobile_LTE_driving",
+    "protocols_filter": "",
+    "pick_mode": "latest",
+    "baseline_oneway_ms": 0.0,
+    "subtract_baseline": false,
+    "ellipse_scale": 1.8,
+    "invert_x": true,
+    "title": "TMobile LTE Driving: Throughput vs OWD",
+    "out_png": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/plots/tmobile_lte_driving_tradeoff.png"
+  },
+  "points": [
+    {
+      "protocol": "mutant",
+      "display_name": "Mutant",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_113526/TMobile_LTE_driving/mutant_trace.csv",
+      "samples": 531,
+      "avg_oneway_ms": 33.1245395480226,
+      "avg_throughput_mbps": 6.120638418079096,
+      "std_oneway_ms": 32.10670467714441,
+      "std_throughput_mbps": 4.386422250883267,
+      "marker": "*",
+      "color": "#f0b12f"
+    },
+    {
+      "protocol": "bbr",
+      "display_name": "BBR",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_101023/TMobile_LTE_driving/fixed_bbr_trace.csv",
+      "samples": 6000,
+      "avg_oneway_ms": 24.73434441666667,
+      "avg_throughput_mbps": 3.0514310000000004,
+      "std_oneway_ms": 28.030192856024357,
+      "std_throughput_mbps": 1.5742643215924699,
+      "marker": "^",
+      "color": "#ff3a3a"
+    },
+    {
+      "protocol": "bic",
+      "display_name": "Bic",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_104843/TMobile_LTE_driving/fixed_bic_trace.csv",
+      "samples": 5848,
+      "avg_oneway_ms": 23.598615851573186,
+      "avg_throughput_mbps": 3.0971130300957594,
+      "std_oneway_ms": 26.121962336471068,
+      "std_throughput_mbps": 1.560729920187995,
+      "marker": "D",
+      "color": "#3f7db6"
+    },
+    {
+      "protocol": "cubic",
+      "display_name": "Cubic",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_091533/TMobile_LTE_driving/fixed_cubic_trace.csv",
+      "samples": 6000,
+      "avg_oneway_ms": 25.525052249999998,
+      "avg_throughput_mbps": 2.9185685,
+      "std_oneway_ms": 29.745455753247334,
+      "std_throughput_mbps": 1.4921940576349588,
+      "marker": "o",
+      "color": "#2f45e0"
+    },
+    {
+      "protocol": "htcp",
+      "display_name": "HTCP",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_105845/TMobile_LTE_driving/fixed_htcp_trace.csv",
+      "samples": 4613,
+      "avg_oneway_ms": 22.9937561239974,
+      "avg_throughput_mbps": 3.1008148710166923,
+      "std_oneway_ms": 22.658922291380396,
+      "std_throughput_mbps": 1.4717410701490172,
+      "marker": "v",
+      "color": "#8f78b8"
+    },
+    {
+      "protocol": "hybla",
+      "display_name": "Hybla",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_091533/TMobile_LTE_driving/fixed_hybla_trace.csv",
+      "samples": 6000,
+      "avg_oneway_ms": 20.050542416666666,
+      "avg_throughput_mbps": 3.286298833333333,
+      "std_oneway_ms": 20.97539672022699,
+      "std_throughput_mbps": 1.410580241200516,
+      "marker": "D",
+      "color": "#39c1cb"
+    },
+    {
+      "protocol": "illinois",
+      "display_name": "Illinois",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_110512/TMobile_LTE_driving/fixed_illinois_trace.csv",
+      "samples": 2504,
+      "avg_oneway_ms": 21.837524361022364,
+      "avg_throughput_mbps": 3.061547523961661,
+      "std_oneway_ms": 23.60677347236096,
+      "std_throughput_mbps": 1.465203097986249,
+      "marker": "d",
+      "color": "#c1bc35"
+    },
+    {
+      "protocol": "vegas",
+      "display_name": "Vegas",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_103035/TMobile_LTE_driving/fixed_vegas_trace.csv",
+      "samples": 6000,
+      "avg_oneway_ms": 24.378624000000002,
+      "avg_throughput_mbps": 3.062048666666666,
+      "std_oneway_ms": 28.068207667814146,
+      "std_throughput_mbps": 1.5909711582232478,
+      "marker": "s",
+      "color": "#2c9e2e"
+    },
+    {
+      "protocol": "veno",
+      "display_name": "Veno",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_102146/TMobile_LTE_driving/fixed_veno_trace.csv",
+      "samples": 6000,
+      "avg_oneway_ms": 24.044528749999998,
+      "avg_throughput_mbps": 3.0680784999999995,
+      "std_oneway_ms": 28.313425079922453,
+      "std_throughput_mbps": 1.5873028593616751,
+      "marker": "s",
+      "color": "#4fc5d4"
+    },
+    {
+      "protocol": "westwood",
+      "display_name": "Westwood",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_101023/TMobile_LTE_driving/fixed_westwood_trace.csv",
+      "samples": 6000,
+      "avg_oneway_ms": 21.43246025,
+      "avg_throughput_mbps": 3.151250833333333,
+      "std_oneway_ms": 25.69511557817059,
+      "std_throughput_mbps": 1.42769533079808,
+      "marker": "o",
+      "color": "#b4b93b"
+    },
+    {
+      "protocol": "yeah",
+      "display_name": "YeAH",
+      "source_trace_csv": "/Users/ethantran/UbuntuShared/cs258_mutant/trcgen/cc_compare_sweep_20260503_103738/TMobile_LTE_driving/fixed_yeah_trace.csv",
+      "samples": 6000,
+      "avg_oneway_ms": 24.0793795,
+      "avg_throughput_mbps": 3.073736333333333,
+      "std_oneway_ms": 26.72810433554563,
+      "std_throughput_mbps": 1.563683620540471,
+      "marker": "^",
+      "color": "#8c8c8c"
+    }
+  ]
+}
